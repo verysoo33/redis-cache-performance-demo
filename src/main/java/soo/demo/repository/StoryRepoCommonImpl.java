@@ -22,7 +22,8 @@ import org.springframework.util.StringUtils;
 import soo.demo.constant.Const;
 import soo.demo.domain.Story;
 import soo.demo.domain.StoryDonationTarget;
-import soo.demo.dto.StoryDto;
+import soo.demo.dto.RestPage;
+import soo.demo.dto.story.StoryDto;
 import soo.demo.util.DateUtil;
 
 import javax.persistence.EntityManager;
@@ -56,44 +57,9 @@ public class StoryRepoCommonImpl implements StoryRepoCommon {
     }
 
     @Override
-    public Page<StoryDto> search(PageRequest pageable, List<Integer> benefitTargetSeqs, List<String> states, List<Integer> fundTypeCodes, Integer orderType,
-                                 String fieldType, String keyword, Integer useYn, Integer[] storyTypeCodeArr, Integer cmsYn, List<String> tags) {
+    public RestPage<StoryDto> search(PageRequest pageable) {
 
         BooleanBuilder booleanBuilder = new BooleanBuilder();
-        if (useYn != null && !useYn.equals(-1)) {
-            booleanBuilder.and(story.useYn.eq(useYn));
-        }
-        if (cmsYn != null && cmsYn.equals(1)) {
-            booleanBuilder.and(
-                    story.seq.in(
-                            queryFactory
-                                    .select(story.seq.max())
-                                    .from(story)
-                                    .groupBy(story.groupId)
-                    )
-            );
-        }
-        booleanBuilder.and(eqFieldValue("useYn", useYn)); // ?????
-        booleanBuilder.and((containsSearch(fieldType, keyword)));
-        booleanBuilder.and(storyFilterSearch(benefitTargetSeqs, states, fundTypeCodes, tags));
-        booleanBuilder.and((eqFieldValue("storyTypeCode", storyTypeCodeArr)));
-        booleanBuilder.and(exceptEndRegularRound());
-        booleanBuilder.and(story.fundStartDt.isNotNull());
-        booleanBuilder.and(story.fundStartDt.before(new Date()));
-        /*, (eqFieldValue("fundEndDt", orderType))
-        // 모금중인 사연 조회인 경우, random 중복제거를 위해 제외시킬 seqList가 필요
-        , exceptFundraisingSeq(state, seqList)
-        , stateSearch(state)
-        , (eqFieldValue("agencySeq", agencySeq))
-        , (eqFieldValue("typeCode", typeCode))
-        , (eqFieldValue("categorySeq", categorySeq))*/
-
-
-        /*// seqList : 웹 '모금중' 사연 리스트 조회 시 사용. seqList 가 있을 때는 page=0부터 & 아래 조건에서 seqList 제외
-        long page = pageable.getOffset();
-        if (!ObjectUtils.isEmpty(state) && state.equals(Const.STORY_STATE_ING) && seqList != null && seqList.size() > 0) {
-            page = 0;
-        }*/
 
         JPAQuery<Integer> countQuery = queryFactory
                 .select(story.seq)
@@ -102,35 +68,7 @@ public class StoryRepoCommonImpl implements StoryRepoCommon {
                 .leftJoin(agency).on(agency.seq.eq(story.agencySeq));
 
         // 조회된 story가 없을 경우, 랜덤으로 2개 조회
-        boolean isRandomRecommend;
-        if (countQuery.fetchCount() <= 0) {
-            // 기본 조회 조건만 세팅
-            booleanBuilder = new BooleanBuilder();
-            if (useYn != null && !useYn.equals(-1)) {
-                booleanBuilder.and(story.useYn.eq(useYn));
-            }
-            booleanBuilder.and(exceptEndRegularRound());
-
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(new Date());
-
-            String today = dateFormat.format(cal.getTime());
-            DateTemplate<String> fundEndDt = Expressions.dateTemplate(String.class, "DATE_FORMAT({0}, {1})", story.fundEndDt, "%Y-%m-%d");
-
-            String defaultDate = "0000-00-00 00:00:00";
-            DateTemplate<String> fundEndDt2 = Expressions.dateTemplate(String.class, "DATE_FORMAT({0}, {1})", story.fundEndDt, "%Y-%m-%d %H:%i:%s");
-            booleanBuilder.and(fundEndDt.goe(today).or(fundEndDt2.eq(defaultDate)).or(story.fundEndDt.isNull()));
-
-            // limit=2
-            pageable = PageRequest.of((int) pageable.getOffset(), 2);
-            // random 정렬
-            orderType = 14;
-
-            isRandomRecommend = true;
-        } else {
-            isRandomRecommend = false;
-        }
+        boolean isRandomRecommend = false;
 
         List<Tuple> results = queryFactory
                 .select(story.seq, story.insertUser, story.updateUser, story.useYn, story.orderValue,
@@ -150,7 +88,6 @@ public class StoryRepoCommonImpl implements StoryRepoCommon {
                 .from(story)
                 .where(booleanBuilder)
                 .leftJoin(agency).on(agency.seq.eq(story.agencySeq))
-                .orderBy(sort(orderType, states.get(0).equals("all") ? "all" : null).stream().toArray(OrderSpecifier[]::new))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -230,7 +167,7 @@ public class StoryRepoCommonImpl implements StoryRepoCommon {
                     .build();
         }).collect(Collectors.toList());
 
-        return PageableExecutionUtils.getPage(storyDtoList, pageable, countQuery::fetchCount);
+        return new RestPage<>(PageableExecutionUtils.getPage(storyDtoList, pageable, countQuery::fetchCount));
     }
 
     @Override
@@ -440,7 +377,7 @@ public class StoryRepoCommonImpl implements StoryRepoCommon {
     }
 
     @Override
-    public List<StoryDto> listStory(Integer mainSectionYn, Integer cmsYn) {
+    public List<StoryDto> listStory() {
         Calendar calendar = Calendar.getInstance();
         Date now = new Date();
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -451,19 +388,6 @@ public class StoryRepoCommonImpl implements StoryRepoCommon {
         }
         calendar.add(Calendar.YEAR, -1);
         Date oneYearAgo = calendar.getTime();
-
-        // 정기사연은 최종 사연만 조회
-        BooleanBuilder booleanBuilder = new BooleanBuilder();
-        if (cmsYn != null && cmsYn.equals(1)) {
-            booleanBuilder.and(
-                    story.seq.in(
-                            queryFactory
-                                    .select(story.seq.max())
-                                    .from(story)
-                                    .groupBy(story.groupId)
-                    )
-            );
-        }
 
         QueryResults<Tuple> results = queryFactory
                 .select(
@@ -497,7 +421,6 @@ public class StoryRepoCommonImpl implements StoryRepoCommon {
                         // 마감날짜 체크
                         , ((story.fundEndDt.isNull().and(story.fundRate.lt(100)))
                                 .or(story.fundEndDt.isNotNull().and(story.fundEndDt.after(now))))
-                        , booleanBuilder
                 )
                 .orderBy(
                         story.mainSectionYn.desc(),

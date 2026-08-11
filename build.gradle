@@ -44,8 +44,8 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     // QueryDSL dependencies (javax 버전)
-    implementation 'com.querydsl:querydsl-jpa:5.0.0'
-    annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jpa"
+    implementation 'com.querydsl:querydsl-jpa:4.4.0'
+    annotationProcessor "com.querydsl:querydsl-apt:4.4.0:jpa"
     annotationProcessor "javax.annotation:javax.annotation-api"
     annotationProcessor "javax.persistence:javax.persistence-api"
 
