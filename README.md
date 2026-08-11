@@ -1,2 +1,26 @@
 # redis-cache-performance-demo
-redis-cache-performance-demo...
+
+
+
+## 🚀 Redis 캐시 도입을 통한 Performance Tuning 결과
+
+동시 사용자 1,000명(VUs: 1000) 부하 상황에서 Redis 캐싱 적용 전/후의 성능을 k6를 통해 비교 측정하였습니다.
+
+### 1. 성능 비교 요약
+
+| 지표 (Metric) | Non-Caching (DB 직접 조회) | Caching (Redis 적용) | 개선 성과 |
+| :--- | :---: | :---: | :---: |
+| **초당 처리량 (Throughput)** | 165.78 req/s | **825.95 req/s** | **약 500% 향상 (5배)** |
+| **평균 응답시간 (Avg Latency)** | 4,170 ms (4.17s) | **7.03 ms** | **약 99.8% 단축 (593배)** |
+| **P95 응답시간 (P95 Latency)** | 14,480 ms (14.48s) | **24.25 ms** | **약 99.8% 단축 (597배)** |
+| **최대 응답시간 (Max Latency)** | 29.56 s | **0.27 s (277ms)** | **약 99.0% 단축** |
+
+---
+
+### 2. 결과 분석 및 성과
+- **DB 병목 현상 완화:** 반복되는 조회 요청을 In-memory 데이터베이스인 Redis에서 즉시 처리하도록 개선하여 DB의 I/O 락 및 CPU 부하를 근본적으로 해결했습니다.
+- **사용자 경험(UX) 극대화:** 부하 상황에서도 95% 이상의 요청이 **25ms 이내**로 응답받아 쾌적한 서비스를 유지할 수 있게 되었습니다.
+
+|                             Caching 미적용                              |                            Caching 적용                            |
+|:--------------------------------------------------------------------:|:----------------------------------------------------------------:|
+| <img src="./src/main/resources/capture/Non-Caching.png" width="450"> | <img src="./src/main/resources/capture/Caching.png" width="450"> |
