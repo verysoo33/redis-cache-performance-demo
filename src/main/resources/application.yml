@@ -4,6 +4,8 @@ server:
     context-path: /api
 
 spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration
   application:
     name: CACHE-DEMO
   profiles:
