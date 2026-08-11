@@ -38,10 +38,10 @@ public class StoryObserver {
         // 사연 메인 캐시 삭제
         cacheUtil.deleteCacheByPrefix(RedisConst.WEB_MAIN_COLLECTION);
         // 사연 상세 캐시 삭제
-        cacheUtil.deleteCacheByPrefix(cacheUtil.getCacheKey(RedisConst.WEB_COLLECTION_DETAIL,
+        cacheUtil.deleteCacheByPrefix(cacheUtil.getCacheKey(RedisConst.WEB_STORY_LIST,
                 String.valueOf(story.getSeq())));
         // 사연 소식 캐시 삭제
-        cacheUtil.deleteCacheByPrefix(cacheUtil.getCacheKey(RedisConst.WEB_COLLECTION_NOTICE,
+        cacheUtil.deleteCacheByPrefix(cacheUtil.getCacheKey(RedisConst.WEB_STORY_LIST,
                 String.valueOf(story.getSeq())));
     }
 }

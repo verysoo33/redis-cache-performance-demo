@@ -20,4 +20,6 @@ public class RedisConst {
 
     static public final String CONFIG = "Config";
     static public final String CONFIG_MAINTENANCE_USER = "ConfigMaintenanceUser";
+
+    static public final String WEB_STORY_LIST = "WebStoryList";
 }

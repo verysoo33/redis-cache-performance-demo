@@ -63,3 +63,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### resources ###
+**/application-local.yml
